@@ -84,7 +84,10 @@ for di in range(drone_count):
     drones_status.append(status)
 
 warehouses_status = warehouses[:]
-orders_status = orders[:]
+
+# order items are sorted by increasing weight
+orders_status = [(pos, sorted(o, key=lambda x: product_types_weights[x])) for (pos, o) in orders]
+
 next_order = 0
 
 def find_closest_warehouse_with_items(origin, items):
@@ -124,6 +127,30 @@ def possible_moves(drones, orders, warehouses):
         for oi, order in enumerate(orders):
             for wi, warehouse in enumerate(warehouses):
                 yield (di, oi, wi)
+
+# split order, take as many items as possible
+# expected items are in increasing weight order
+def split_order(order, warehouse):
+    o_pos, o_items = order
+    w_pos, w_items = warehouse
+    w_items = w_items[:]
+
+    # select available items that will fit in
+
+    total = 0
+    take = []
+    keep = []
+
+    for ii in o_items:
+        ii_weight = product_types_weights[ii]
+        if ii in w_items and (total + ii_weight <= max_payload):
+            total += ii_weight
+            w_items.remove(ii)
+            take.append(ii)
+        else:
+            keep.append(ii)
+
+    return ((o_pos, take), (o_pos, keep))
 
 for turn in range(turns):
     print("-- starting turn " + str(turn))
