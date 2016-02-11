@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import math
 
 with open("busy_day.in") as f:
     rows, cols, drone_count, turns, max_payload = [int(x) for x in f.readline().split()]
@@ -40,6 +40,10 @@ with open("busy_day.in") as f:
     print("warehouse_count: " + str(warehouse_count))
     print("order_count: " + str(order_count))
 
+    def distance(origin, dest):
+        return math.ceil(math.sqrt((origin[0] - dest[0]) ** 2 + (origin[1] - dest[1]) ** 2))
+
+    print(distance((2, 1), (2, 2)))
 
     # print(rows, cols, drones, turns, max_payload, product_types_count)
     # print()
