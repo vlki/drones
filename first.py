@@ -2,7 +2,7 @@
 
 
 with open("busy_day.in") as f:
-    rows, cols, drones, turns, max_payload = [int(x) for x in f.readline().split()]
+    rows, cols, drone_count, turns, max_payload = [int(x) for x in f.readline().split()]
 
     product_types_count = int(f.readline())
     product_types_weights = [int(x) for x in f.readline().split()]
@@ -36,8 +36,9 @@ with open("busy_day.in") as f:
     assert(len(order_pos) == order_count)
     assert(len(order_items) == order_count)
 
-    print("warehouse_count: " + warehouse_count)
-    print("order_count: " + order_count)
+    print("drone_count: " + str(drone_count))
+    print("warehouse_count: " + str(warehouse_count))
+    print("order_count: " + str(order_count))
 
 
     # print(rows, cols, drones, turns, max_payload, product_types_count)
