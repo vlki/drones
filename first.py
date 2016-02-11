@@ -2,6 +2,23 @@
 import math
 import itertools
 
+out = []
+
+def out_action(action, a, b, c, d):
+    out.append(str(a) + " " + action + " " + str(b) + " " + str(c) + " " + str(d))
+
+def out_load(d_id, w_id, p_id, p_qty):
+    out_action("L", d_id, w_id, p_id, p_qty)
+
+def out_unload(d_id, w_id, p_id, p_qty):
+    out_action("U", d_id, w_id, p_id, p_qty)
+
+def out_deliver(d_id, o_id, p_id, p_qty):
+    out_action("D", d_id, o_id, p_id, p_qty)
+
+def out_wait(d_id, turns):
+    out.append(str(d_id) + " W " + str(turns))
+
 with open("busy_day.in") as f:
     rows, cols, drone_count, turns, max_payload = [int(x) for x in f.readline().split()]
 
@@ -197,8 +214,14 @@ for turn in range(turns):
             drone_turn_distance = distance(drone[0], warehouse[0])
             print("to wh: sending drone " + str(di) + " from " + str(drone[0][0]) + "-" + str(drone[0][1]) + " to " + str(warehouse[0][0]) + "-" + str(warehouse[0][1]) + " (distance " + str(distance(drone[0], warehouse[0])) + ")")
 
+            for p_id in order[1]:
+                out_load(di, wi, p_id, 1)
+
             # load stuff in warehouse
             drone_turn_distance += 1
+
+            for p_id in order[1]:
+                out_deliver(di, wi, p_id, 1)
 
             # travel to order pos
             drone_turn_distance = distance(warehouse[0], order[0])
@@ -209,6 +232,8 @@ for turn in range(turns):
 
             allocate_items_from_warehouse(wi, order[1])
             orders_status[oi] = (orders_status[oi][0], orders_status[oi][1], True)
+
+    break;
 
     for di, drone in enumerate(drones_status):
         if drones_status[di][1] == 0:
@@ -230,23 +255,6 @@ for turn in range(turns):
 #     line = line.strip()
 #
 #     print(line)
-
-out = []
-
-def out_action(action, a, b, c, d):
-    out.append(str(a) + action + str(b) + str(c) + str(d))
-
-def out_load(d_id, w_id, p_id, p_qty):
-    out_action("L", d_id, w_id, p_id, p_qty)
-
-def out_unload(d_id, w_id, p_id, p_qty):
-    out_action("U", d_id, w_id, p_id, p_qty)
-
-def out_deliver(d_id, o_id, p_id, p_qty):
-    out_action("D", d_id, o_id, p_id, p_qty)
-
-def out_wait(d_id, turns):
-    out.append(str(d_id) + "W" + str(turns))
 
 # out_load(1, 2, 3, 1)
 # out_unload(1, 2, 3, 1)
