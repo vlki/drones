@@ -40,10 +40,29 @@ with open("busy_day.in") as f:
     print("warehouse_count: " + str(warehouse_count))
     print("order_count: " + str(order_count))
 
-    def distance(origin, dest):
-        return math.ceil(math.sqrt((origin[0] - dest[0]) ** 2 + (origin[1] - dest[1]) ** 2))
+def distance(origin, dest):
+    return math.ceil(math.sqrt((origin[0] - dest[0]) ** 2 + (origin[1] - dest[1]) ** 2))
 
-    print(distance((2, 1), (2, 2)))
+print(distance((2, 1), (2, 2)))
+
+drones_status = []
+start_pos = warehouse_pos[0]
+# print(start_pos)
+for di in range(drone_count):
+    # second param is number of turns in which drones gets to the position in first param
+    status = (start_pos, 0)
+    drones_status.append(status)
+
+warehouse_status = warehouse_stock[:]
+next_order = 0
+
+# for turn in range(turns):
+#     for drone_status in drones_status:
+#         if drone_status[1] == 0:
+#
+
+
+
 
     # print(rows, cols, drones, turns, max_payload, product_types_count)
     # print()
