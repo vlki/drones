@@ -220,3 +220,29 @@ for turn in range(turns):
 #     line = line.strip()
 #
 #     print(line)
+
+out = []
+
+def out_action(action, a, b, c, d):
+    out.append(str(a) + action + str(b) + str(c) + str(d))
+
+def out_load(d_id, w_id, p_id, p_qty):
+    out_action("L", d_id, w_id, p_id, p_qty)
+
+def out_unload(d_id, w_id, p_id, p_qty):
+    out_action("U", d_id, w_id, p_id, p_qty)
+
+def out_deliver(d_id, o_id, p_id, p_qty):
+    out_action("D", d_id, o_id, p_id, p_qty)
+
+def out_wait(d_id, turns):
+    out.append(str(d_id) + "W" + str(turns))
+
+# out_load(1, 2, 3, 1)
+# out_unload(1, 2, 3, 1)
+# out_deliver(1, 2, 3, 1)
+# out_wait(1, 2)
+
+with open("busy_day.out", "w") as f:
+    out.insert(0, str(len(out)))
+    f.write("\n".join(out))
