@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import math
+import itertools
 
 with open("busy_day.in") as f:
     rows, cols, drone_count, turns, max_payload = [int(x) for x in f.readline().split()]
@@ -86,6 +87,16 @@ next_order = 0
 #         wh_has_items = true
 #         wh_distance = distance(warehouse_pos, warehouse_status)
 #         for items
+
+def drone_is_idle(drone):
+    # (position, left_moving_steps)
+    return drone[1] == 0
+
+def possible_moves(drones, orders, warehouses):
+    for di, drone in enumerate([d for d in drones if drone_is_idle(d)]):
+        for oi, order in enumerate(orders):
+            for wi, warehouse in enumerate(warehouses):
+                yield (di, oi, wi)
 
 for turn in range(turns):
     print("-- starting turn " + str(turn))
