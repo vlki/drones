@@ -85,8 +85,10 @@ for di in range(drone_count):
 
 warehouses_status = warehouses[:]
 
+orders_status = []
 # order items are sorted by increasing weight
-orders_status = [(pos, sorted(o, key=lambda x: product_types_weights[x])) for (pos, o) in orders]
+for pos, items in [(pos, sorted(o, key=lambda x: product_types_weights[x])) for (pos, o) in orders]:
+    orders_status.append((pos, items, False))
 
 next_order = 0
 
@@ -116,15 +118,15 @@ def find_closest_warehouse_with_items(origin, items):
 
 def allocate_items_from_warehouse(w_index, o_items):
     for item in o_items:
-        warehouses_status[w_index][item] -= 1
+        warehouses_status[w_index][1][item] -= 1
 
 def drone_is_idle(drone):
     # (position, left_moving_steps)
     return drone[1] == 0
 
 def possible_moves(drones, orders, warehouses):
-    for di, drone in enumerate([d for d in drones if drone_is_idle(d)]):
-        for oi, order in enumerate(orders):
+    for di, drone in enumerate([d for d in drones_status if drone_is_idle(d)]):
+        for oi, order in enumerate([o for o in orders if (o[2] == False)]):
             for wi, warehouse in enumerate(warehouses):
                 yield (di, oi, wi)
 
@@ -152,62 +154,70 @@ def split_order(order, warehouse):
 
     return ((o_pos, take), (o_pos, keep))
 
+def is_executable(drone, order, warehouse):
+    o_items = order[1]
+    w_stock = warehouse[1]
+
+    o_weight = 0
+    for o_item in o_items:
+        o_weight += product_types_weights[o_item]
+
+        if o_weight > max_payload:
+            return False
+
+    # TODO: maybe just one loop
+    w_stock_working = w_stock[:]
+    for o_item in o_items:
+        if w_stock_working[o_item] > 0:
+            w_stock_working[o_item] -= 1
+        else:
+            return False
+
+    return True
+
 for turn in range(turns):
     print("-- starting turn " + str(turn))
 
     costs = []
     for di, oi, wi in possible_moves(drones_status, orders_status, warehouses_status):
         c = cost(orders_status[oi][0], orders_status[oi][1], drones_status[di][0], max_payload, warehouses_status[wi][0], warehouses_status[wi][1], product_types_weights)
-        costs.append(((di, oi, wi), c))
-        print(c)
+        costs.append((di, oi, wi, c))
 
-    break
+    print("costs len: " + str(len(costs)))
 
+    costs.sort(key=lambda cc: cc[3])
 
-    for drone_index, drone_status in enumerate(drones_status):
-        if drone_status[1] == 0:
-            drone_turn_start_pos = drone_status[0]
-            drone_turn_order_pos = order_pos[next_order]
-
-            while True:
-                drone_turn_order_items = order_items[next_order]
-                closest_wh_index = find_closest_warehouse_with_items(drone_turn_start_pos, drone_turn_order_items)
-
-                if closest_wh_index == None:
-                    print("skipping order")
-                    next_order += 1
-                else:
-                    break
-
-            allocate_items_from_warehouse(closest_wh_index, items)
-
-            closest_wh_pos = warehouse_pos[closest_wh_index]
+    for di, oi, wi, c in costs:
+        if is_executable(drones_status[di], orders_status[oi], warehouses_status[wi]) and drones_status[di][1] == 0 and orders_status[oi][2] == False:
+            drone = drones_status[di]
+            order = orders_status[oi]
+            warehouse = warehouses_status[wi]
 
             # get to closest warehouse and get stuff
-            drone_turn_distance = distance(drone_turn_start_pos, closest_wh_pos)
-            print("to wh: sending drone " + str(drone_index) + " from " + str(drone_turn_start_pos[0]) + "-" + str(drone_turn_start_pos[1]) + " to " + str(closest_wh_pos[0]) + "-" + str(closest_wh_pos[1]) + " (distance " + str(distance(drone_turn_start_pos, closest_wh_pos)) + ")")
+            drone_turn_distance = distance(drone[0], warehouse[0])
+            print("to wh: sending drone " + str(di) + " from " + str(drone[0][0]) + "-" + str(drone[0][1]) + " to " + str(warehouse[0][0]) + "-" + str(warehouse[0][1]) + " (distance " + str(distance(drone[0], warehouse[0])) + ")")
 
             # load stuff in warehouse
             drone_turn_distance += 1
 
             # travel to order pos
-            drone_turn_distance = distance(closest_wh_pos, drone_turn_order_pos)
-            print("from wh: sending drone " + str(drone_index) + " from " + str(drone_turn_start_pos[0]) + "-" + str(closest_wh_pos[1]) + " to " + str(closest_wh_pos[0]) + "-" + str(drone_turn_order_pos[1]) + " (distance " + str(distance(closest_wh_pos, drone_turn_order_pos)) + ")")
+            drone_turn_distance = distance(warehouse[0], order[0])
+            print("from wh: sending drone " + str(di) + " from " + str(warehouse[0][0]) + "-" + str(warehouse[0][1]) + " to " + str(order[0][0]) + "-" + str(order[0][1]) + " (distance " + str(distance(warehouse[0], order[0])) + ")")
 
             # set the end position and when can we expect drone there
-            drones_status[drone_index] = (drone_turn_order_pos, drone_turn_distance)
+            drones_status[di] = (order[0], drone_turn_distance)
 
-            next_order += 1
+            allocate_items_from_warehouse(wi, order[1])
+            orders_status[oi] = (orders_status[oi][0], orders_status[oi][1], True)
 
-            # do not plan next drone -> break
-            if next_order == order_count:
-                break
+    for di, drone in enumerate(drones_status):
+        if drones_status[di][1] == 0:
+            # means that there was no executable action for this drone, wait at this location
+            print("boo")
+        else:
+            drones_status[di] = (drones_status[di][0], drones_status[di][1] - 1)
 
-        drones_status[drone_index] = (drones_status[drone_index][0], drones_status[drone_index][1] - 1)
-
-    # do not follow with any turns -> break
-    if next_order == order_count:
-        break
+        print("drone " + str(di) + ", time to target " + str(drones_status[di][1]))
 
 
 
