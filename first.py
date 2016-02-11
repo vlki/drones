@@ -43,6 +43,31 @@ with open("busy_day.in") as f:
 def distance(origin, dest):
     return math.ceil(math.sqrt((origin[0] - dest[0]) ** 2 + (origin[1] - dest[1]) ** 2))
 
+
+def cost(o_pos, o_items, d_pos, d_load, w_pos, w_stock, p_weights):
+    c = 0
+    stock_punishment = 10
+    weight_punishment = 10
+
+    o_w_dist = distance(o_pos, w_pos)
+    d_w_dist = distance(d_pos, w_pos)
+    
+    o_weight = 0
+    for o_item in o_items:
+        o_weight += p_weights[o_item]
+
+    if o_weight > d_load:
+        c += weight_punishment * (o_weight / d_load)
+
+    w_stock_working = w_stock[:]
+    for o_item in o_items:
+        if w_stock_working[o_item] > 0:
+            w_stock_working[o_item] -= 1
+        else:
+            c += stock_punishment
+
+    return c + o_w_dist + d_w_dist
+
 # print(distance((2, 1), (2, 2)))
 
 drones_status = []
