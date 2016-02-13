@@ -16,7 +16,6 @@ if len(sys.argv) != 3:
 
 world, initial_state = load_input(sys.argv[1])
 
-
 # this is the function which is called anytime drone is idle and
 # it decides what the drone will do next
 #
@@ -142,6 +141,8 @@ for turn in range(world.turns):
         for item in items_to_deliver:
             output.load(d.id, w.id, item.pt_id, 1)
             print("  * loading drone " + str(d.id) + " with product " + str(item.pt_id))
+
+            w.stock[item.pt_id] -= 1
 
             # every load command takes one turn
             turns_till_idle_again += 1
