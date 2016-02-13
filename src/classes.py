@@ -62,16 +62,31 @@ class Warehouse:
     def __str__(self):
         return "w%s_%s_%s" % (self.id, self.pos, self.stock)
 
+    def is_not_empty(self):
+        # TODO:
+        return True
+
 class Order:
     def __init__(self):
+        self.id = None
         self.pos = None
         self.items = None
 
     def __str__(self):
         return "o%s%s" % (self.pos, self.items)
 
+    def delivered(self):
+        items_delivered = set([item.delivered for item in self.items])
+        return len(items_delivered) == 1 and items_delivered.pop()
+
+class OrderItem:
+    def __init__(self, pt_id):
+        self.pt_id = pt_id
+        self.delivered = False
+
 class Drone:
     def __init__(self):
+        self.id = None
         self.pos = None
         self.turns_to_pos = None
 

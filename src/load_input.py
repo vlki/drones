@@ -1,4 +1,4 @@
-from .classes import World, State, Warehouse, Order, Drone
+from .classes import World, State, Warehouse, Order, OrderItem, Drone
 
 def load_input(input_file_path):
     world = World()
@@ -37,6 +37,7 @@ def load_input(input_file_path):
         # init drones
         for di in range(world.d_count):
             d = Drone()
+            d.id = di
 
             # drones start at the first warehouse
             d.pos = initial_state.warehouses[0].pos
@@ -51,8 +52,9 @@ def load_input(input_file_path):
         o_count = int(f.readline())
 
         # 3 lines per order - order position, items count & items
-        for ci in range(o_count):
+        for oi in range(o_count):
             o = Order()
+            o.id = oi
 
             x, y = [int(x) for x in f.readline().split()]
             o.pos = (x, y)
@@ -61,7 +63,7 @@ def load_input(input_file_path):
             # so just read the line and trash the output
             f.readline()
 
-            o.items = [int(x) for x in f.readline().split()]
+            o.items = [OrderItem(int(pt_id)) for pt_id in f.readline().split()]
 
             initial_state.open_orders.append(o)
 
