@@ -25,6 +25,7 @@ def load_input(input_file_path):
         # pairs of lines - warehouses positions & stock
         for wi in range(world.w_count):
             w = Warehouse()
+            w.id = wi
 
             x, y = [int(x) for x in f.readline().split()]
             w.pos = (x, y)

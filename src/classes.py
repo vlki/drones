@@ -55,11 +55,12 @@ class State:
 
 class Warehouse:
     def __init__(self):
+        self.id = None
         self.pos = None
         self.stock = None
 
     def __str__(self):
-        return "w%s%s" % (self.pos, self.stock)
+        return "w%s_%s_%s" % (self.id, self.pos, self.stock)
 
 class Order:
     def __init__(self):
