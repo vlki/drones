@@ -128,9 +128,6 @@ for turn in range(world.turns):
 
         w, o, items_to_deliver = action
 
-        # print("  # action")
-        # print(items_to_deliver)
-
         turns_till_idle_again = 0
 
         # drone has to get to the warehouse first
@@ -142,6 +139,7 @@ for turn in range(world.turns):
             output.load(d.id, w.id, item.pt_id, 1)
             print("  * loading drone " + str(d.id) + " with product " + str(item.pt_id))
 
+            print("  $ stock of " + str(item.pt_id) + " at warehouse " + str(w.id) + " was " + str(w.stock[item.pt_id]) + ", is now " + str(w.stock[item.pt_id] - 1))
             w.stock[item.pt_id] -= 1
 
             # every load command takes one turn
