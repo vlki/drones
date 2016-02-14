@@ -63,8 +63,11 @@ class Warehouse:
         return "w%s_%s_%s" % (self.id, self.pos, self.stock)
 
     def is_not_empty(self):
-        # TODO:
-        return True
+        for pt_stock in self.stock:
+            if pt_stock > 0:
+                return True
+
+        return False
 
 class Order:
     def __init__(self):
