@@ -153,17 +153,25 @@ def prepare_for_single_warehouse_scenario(state):
         chunk = []
         chunk_weight = 0
         items_heaviest_first = sorted(o.items, key = lambda i: i.weight, reverse=True)
-        for item in items_heaviest_first:
-            if (chunk_weight + item.weight) > world.d_max_payload:
-                chunks.append(chunk)
-                chunk = []
-                chunk_weight = 0
 
-            chunk.append(item)
-            chunk_weight += item.weight
+        # we are trying to make chunks as full as possible
+        while True:
+            for item in items_heaviest_first:
+                if (chunk_weight + item.weight) > world.d_max_payload:
+                    continue
 
-        if chunk_weight > 0:
+                chunk.append(item)
+                chunk_weight += item.weight
+
+            for item in chunk:
+                items_heaviest_first.remove(item)
+
             chunks.append(chunk)
+            chunk = []
+            chunk_weight = 0
+
+            if len(items_heaviest_first) == 0:
+                break
 
         o.items_chunks = chunks
 
