@@ -27,7 +27,8 @@ world, initial_state = load_input(sys.argv[1])
 def find_drone_action(state, d):
     if len(state.warehouses) == 1:
         # optimalization for scenario when there is just one warehouse
-        closest_warehouses = state.warehouses[:]
+        w = state.warehouses[0]
+        return find_drone_action_for_single_warehouse(state, d, w)
     else:
         closest_warehouses = find_closest_nonempty_warehouses(state, d)
 
@@ -46,6 +47,19 @@ def group_items_by_pt_id(items):
         grouped_items[pt_id] = list(items)
 
     return grouped_items
+
+# if there is just one warehouse, it is easy. we should already have the cost of
+# each order ready and we just deliver it by that cost function
+def find_drone_action_for_single_warehouse(state, d, w):
+    for o in state.open_orders:
+        if len(o.items_chunks) == 0:
+            continue
+
+        # this gets the chunks and also removes it from the list of chunks
+        chunk = o.items_chunks.pop(0)
+
+        return (w, o, group_items_by_pt_id(chunk))
+
 
 def find_drone_action_for_warehouse(state, d, w):
     o_deliverable_fully = []
@@ -125,8 +139,61 @@ def find_drone_action_for_warehouse(state, d, w):
 
     return (w, o, group_items_by_pt_id(deliver_items))
 
+def prepare_for_single_warehouse_scenario(state):
+    w = state.warehouses[0]
+
+    # split each order into chunks of items by weight
+    for o in state.open_orders:
+
+        # give each item weight for easier manipulation later
+        for i in o.items:
+            i.weight = world.pt_weights[i.pt_id]
+
+        chunks = []
+        chunk = []
+        chunk_weight = 0
+        items_heaviest_first = sorted(o.items, key = lambda i: i.weight, reverse=True)
+        for item in items_heaviest_first:
+            if (chunk_weight + item.weight) > world.d_max_payload:
+                chunks.append(chunk)
+                chunk = []
+                chunk_weight = 0
+
+            chunk.append(item)
+            chunk_weight += item.weight
+
+        if chunk_weight > 0:
+            chunks.append(chunk)
+
+        o.items_chunks = chunks
+
+        # base cost is just the turns needed to go back and forth with the drone
+        cost = len(chunks) * distance(w.pos, o.pos)
+
+        # and to be more precise, we will also add the turns needed for loading
+        # and unloading
+        for chunk in chunks:
+            chunk_product_types = {}
+            for item in chunk:
+                if item.pt_id not in chunk_product_types:
+                    chunk_product_types[item.pt_id] = 0
+                chunk_product_types[item.pt_id] += 1
+
+            turns_to_load_chunk = len(chunk_product_types)
+
+            # multiplied by two because we need to load and then unload it
+            cost += turns_to_load_chunk * 2
+
+        o.cost = cost
+
+    state.open_orders.sort(key = lambda o: o.cost)
+
 output = Output(sys.argv[2])
 state = copy.deepcopy(initial_state)
+
+if len(state.warehouses) == 1:
+    prepare_for_single_warehouse_scenario(state)
+
 for turn in range(world.turns):
     print("-- starting turn " + str(turn))
 
