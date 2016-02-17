@@ -74,7 +74,7 @@ def prepare_routes(world, state):
             item.weight = weight_of_item(item, world)
 
         for w in temp_closest_warehouses:
-            for item in items_not_found_yet:
+            for item in items_not_found_yet[:]:
                 if w.stock[item.pt_id] > 0:
                     items_not_found_yet.remove(item)
                     w.stock[item.pt_id] -= 1
@@ -96,7 +96,7 @@ def prepare_routes(world, state):
             route.weight = 0
 
             while True:
-                for item in items_heaviest_first:
+                for item in items_heaviest_first[:]:
                     if (route.weight + item.weight) > world.d_max_payload:
                         continue
 
@@ -125,7 +125,7 @@ def prepare_routes(world, state):
     # routes1 = sorted(routes, key = lambda r: r.weight, reverse = True)
     # for route in routes1:
     #     print(str(route.weight) + " " + str(len(route.items)))
-    #
+
     # print('all: ' + str(len(routes)))
     #
     # routes_one_item = list(filter(lambda r: len(r.items) == 1, routes))
@@ -154,7 +154,7 @@ def is_route_efficient_to_chunk(route, chunk):
 
     return True
 
-def chunk_routes(world, routes):
+def chunk_routes_1(world, routes):
     routes_by_w = grouped_routes_by_warehouse_id(routes)
     chunks = []
 
@@ -168,7 +168,7 @@ def chunk_routes(world, routes):
         chunk.weight = 0
 
         while True:
-            for route in w_routes_heaviest_first:
+            for route in w_routes_heaviest_first[:]:
                 if (chunk.weight + route.weight) > world.d_max_payload:
                     continue
 
@@ -210,7 +210,7 @@ def chunk_routes(world, routes):
     # chunks1 = sorted(chunks, key = lambda ch: ch.weight, reverse = True)
     # for chunk in chunks1:
     #     print(str(chunk.weight) + " " + str(len(chunk.routes)))
-    #
+
     # print('all: ' + str(len(chunks)))
     #
     # chunks2 = list(filter(lambda ch: ch.weight == world.d_max_payload, chunks))
@@ -226,9 +226,102 @@ def chunk_routes(world, routes):
 
     return chunks
 
+def chunk_routes_2(world, routes):
+    routes_by_w = grouped_routes_by_warehouse_id(routes)
+    chunks = []
+
+    for w_id, w_routes in routes_by_w.items():
+        w_routes_heaviest_first = sorted_routes_heaviest_first(w_routes)
+        w = w_routes_heaviest_first[0].w
+
+        chunk = RoutesChunk()
+        chunk.w = w
+        chunk.routes = []
+        chunk.weight = 0
+
+        while True:
+            rel_route = w_routes_heaviest_first.pop(0)
+            chunk.routes.append(rel_route)
+            chunk.weight += rel_route.weight
+
+            routes_with_closest_o = sorted(w_routes_heaviest_first, key = lambda r: distance(r.o.pos, rel_route.o.pos))
+
+            for route in routes_with_closest_o:
+                if (chunk.weight + route.weight) > world.d_max_payload:
+                    continue
+
+                if distance(route.o.pos, rel_route.o.pos) > distance(route.o.pos, route.w.pos):
+                    continue
+
+                # TODO: also! if we will chunk together routes with same products,
+                # it will in the end save turns on loading (might be interesting?)
+
+                # print("distance " + str(distance(route.o.pos, rel_route.o.pos)))
+
+                w_routes_heaviest_first.remove(route)
+                chunk.routes.append(route)
+                chunk.weight += route.weight
+
+            chunks.append(chunk)
+
+            chunk = RoutesChunk()
+            chunk.w = w
+            chunk.routes = []
+            chunk.weight = 0
+
+            if len(w_routes_heaviest_first) == 0:
+                break
+
+    for chunk in chunks:
+        chunk.items_by_o_id_and_pt_id = {}
+        chunk.items_by_pt_id = {}
+
+        for route in chunk.routes:
+
+            if route.o.id not in chunk.items_by_o_id_and_pt_id:
+                chunk.items_by_o_id_and_pt_id[route.o.id] = {}
+
+            for item in route.items:
+                if item.pt_id not in chunk.items_by_o_id_and_pt_id[route.o.id]:
+                    chunk.items_by_o_id_and_pt_id[route.o.id][item.pt_id] = []
+
+                if item.pt_id not in chunk.items_by_pt_id:
+                    chunk.items_by_pt_id[item.pt_id] = []
+
+                chunk.items_by_o_id_and_pt_id[route.o.id][item.pt_id].append(item)
+                chunk.items_by_pt_id[item.pt_id].append(item)
+
+
+
+    # chunks1 = sorted(chunks, key = lambda ch: ch.weight, reverse = True)
+    # for chunk in chunks1:
+    #     print(str(chunk.weight) + " " + str(len(chunk.routes)))
+
+    # print('all: ' + str(len(chunks)))
+    #
+    # chunks2 = list(filter(lambda ch: ch.weight == world.d_max_payload, chunks))
+    # print('full weight: ' + str(len(chunks2)))
+    #
+    # chunks3 = list(filter(lambda ch: ch.weight > 190, chunks))
+    # print('> 190: ' + str(len(chunks3)))
+    #
+    # chunks4 = list(filter(lambda ch: ch.weight > 180, chunks))
+    # print('> 180: ' + str(len(chunks4)))
+    #
+    # chunks5 = list(filter(lambda ch: ch.weight > 170, chunks))
+    # print('> 170: ' + str(len(chunks5)))
+    #
+    # sys.exit(0)
+
+    return chunks
+
 def get_chunk_for_drone(state, chunked_routes, d):
     # TODO: here could be smart choosing of the chunk based on how
     # many orders will be closed by that flight
+
+    # print("chunks: " + str(len(chunked_routes)))
+    # for chunk in chunked_routes:
+    #     print(str(len(chunk.routes)))
 
     for w in find_closest_nonempty_warehouses(state, d):
         chunks_of_w = list(filter(lambda ch: ch.w == w, chunked_routes))
@@ -246,7 +339,8 @@ def get_chunk_for_drone(state, chunked_routes, d):
 
 state = copy.deepcopy(initial_state)
 routes = prepare_routes(world, state)
-chunked_routes = chunk_routes(world, routes)
+chunked_routes = chunk_routes_2(world, routes)
+output = Output(sys.argv[2])
 
 for turn in range(world.turns):
     print("-- starting turn " + str(turn))
@@ -281,22 +375,29 @@ for turn in range(world.turns):
             # every load command takes one turn
             turns_till_idle_again += 1
 
-        # drone has to get to order
-        turns_till_idle_again += distance(w.pos, o.pos)
-        print("  * sending drone " + str(d.id) + " to order " + str(o.id) + " pos " + str(o.pos[0]) + "-" + str(o.pos[1]) + " (distance: " + str(distance(w.pos, o.pos)) + ")")
+        from_pos = w.pos
 
-        # drone has to unload
-        for pt_id, items in chunk.items_by_pt_id.items():
-            qty = len(items)
+        for o_id, items_by_pt_id in chunk.items_by_o_id_and_pt_id.items():
+            o = state.open_orders[o_id]
 
-            output.deliver(d.id, o.id, pt_id, qty)
-            print("  * unloading drone " + str(d.id) + " with product " + str(pt_id) + " of qty " + str(qty))
+            # drone has to get to order
+            turns_till_idle_again += distance(from_pos, o.pos)
+            print("  * sending drone " + str(d.id) + " to order " + str(o.id) + " pos " + str(o.pos[0]) + "-" + str(o.pos[1]) + " (distance: " + str(distance(from_pos, o.pos)) + ")")
 
-            # every deliver command takes one turn
-            turns_till_idle_again += 1
+            # drone has to unload
+            for pt_id, items in items_by_pt_id.items():
+                qty = len(items)
 
-            for item in items:
-                item.delivered = True
+                output.deliver(d.id, o.id, pt_id, qty)
+                print("  * unloading drone " + str(d.id) + " with product " + str(pt_id) + " of qty " + str(qty))
+
+                # every deliver command takes one turn
+                turns_till_idle_again += 1
+
+                for item in items:
+                    item.delivered = True
+
+            from_pos = o.pos
 
         if o.delivered():
             delivered_orders = [o for o in state.open_orders if o.delivered()]
