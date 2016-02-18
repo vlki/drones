@@ -169,79 +169,7 @@ def is_route_efficient_to_chunk(route, chunk):
 
     return True
 
-def chunk_routes_1(world, routes):
-    routes_by_w = grouped_routes_by_warehouse_id(routes)
-    chunks = []
-
-    for w_id, w_routes in routes_by_w.items():
-        w_routes_heaviest_first = sorted_routes_heaviest_first(w_routes)
-        w = w_routes_heaviest_first[0].w
-
-        chunk = RoutesChunk()
-        chunk.w = w
-        chunk.routes = []
-        chunk.weight = 0
-
-        while True:
-            for route in w_routes_heaviest_first[:]:
-                if (chunk.weight + route.weight) > world.d_max_payload:
-                    continue
-
-                # TODO: chunk routes based on the distance
-                # e.g. maybe chunk only those orders where distance between orders
-                # is less than distance of any that from warehouse?
-                # not sure
-                if not is_route_efficient_to_chunk(route, chunk):
-                    continue
-
-                # TODO: also! if we will chunk together routes with same products,
-                # it will in the end save turns on loading (might be interesting?)
-
-                w_routes_heaviest_first.remove(route)
-                chunk.routes.append(route)
-                chunk.weight += route.weight
-
-            chunks.append(chunk)
-
-            chunk = RoutesChunk()
-            chunk.w = w
-            chunk.routes = []
-            chunk.weight = 0
-
-            if len(w_routes_heaviest_first) == 0:
-                break
-
-    for chunk in chunks:
-        chunk.items_by_pt_id = {}
-
-        for route in chunk.routes:
-            for item in route.items:
-                if item.pt_id not in chunk.items_by_pt_id:
-                    chunk.items_by_pt_id[item.pt_id] = []
-
-                chunk.items_by_pt_id[item.pt_id].append(item)
-
-
-    # chunks1 = sorted(chunks, key = lambda ch: ch.weight, reverse = True)
-    # for chunk in chunks1:
-    #     print(str(chunk.weight) + " " + str(len(chunk.routes)))
-
-    # print('all: ' + str(len(chunks)))
-    #
-    # chunks2 = list(filter(lambda ch: ch.weight == world.d_max_payload, chunks))
-    # print('full weight: ' + str(len(chunks2)))
-    #
-    # chunks3 = list(filter(lambda ch: ch.weight > 190, chunks))
-    # print('> 190: ' + str(len(chunks3)))
-    #
-    # chunks4 = list(filter(lambda ch: ch.weight > 180, chunks))
-    # print('> 180: ' + str(len(chunks4)))
-    #
-    # sys.exit(0)
-
-    return chunks
-
-def chunk_routes_2(world, routes):
+def chunk_routes(world, routes):
     routes_by_w = grouped_routes_by_warehouse_id(routes)
     chunks = []
 
@@ -363,7 +291,7 @@ def get_chunk_for_drone(state, chunked_routes, d):
 
 state = copy.deepcopy(initial_state)
 routes = prepare_routes(world, state)
-chunked_routes = chunk_routes_2(world, routes)
+chunked_routes = chunk_routes(world, routes)
 output = Output(sys.argv[2])
 
 for turn in range(world.turns):
